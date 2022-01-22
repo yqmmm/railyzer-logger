@@ -27,8 +27,12 @@ module SqlSource
     end
 
     def register_sql(sql)
-      store[:sql_log] ||= []
-      store[:sql_log] << sql
+      if Rails.env.test?
+        @dest.puts sql
+      else
+        store[:sql_log] ||= []
+        store[:sql_log] << sql
+      end
     end
 
     def finish_api(event)
