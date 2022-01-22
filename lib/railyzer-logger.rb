@@ -8,7 +8,7 @@ class BackTraceCleaner < ActiveSupport::BacktraceCleaner
 
   def initialize
     super
-    @root = "#{Rails.root.parent}/" # use `parent` because app may be broke into gems
+    @root = "#{Rails.root}/" # use `parent` because app may be broke into gems?
     add_filter { |line| line.sub(@root, EMPTY_STRING) }
     add_filter { |line| line.sub(RENDER_TEMPLATE_PATTERN, EMPTY_STRING) }
     add_filter { |line| line.sub(DOT_SLASH, SLASH) } # for tests
