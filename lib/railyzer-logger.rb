@@ -45,8 +45,7 @@ module RailyzerLogger
         end
       end
 
-      def finish_api(event)
-        sql_log = store[:sql_log] || []
+      def finish_api(event) sql_log = store[:sql_log] || []
         store[:sql_log] = nil
 
         header = "#{event.payload[:method]} #{event.payload[:path]}"
@@ -91,7 +90,9 @@ module RailyzerLogger
     cleaned_trace = cleaner.clean(caller).join(", ")
 
     unless event.payload[:cached] or event.payload[:name] == 'SCHEMA'
-      SqlSource.register_sql "\##{cleaned_trace}"
+      SqlSource.register_sql "\#" + 
+                            if event.payload[:cached] then "(cached)" else "" end + 
+                            "#{cleaned_trace}"
       SqlSource.register_sql event.payload[:sql]
     end
   end
