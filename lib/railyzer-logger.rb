@@ -2,6 +2,7 @@ module RailyzerLogger
   # Modified from Rails:BacktraceCleaner
   class BackTraceCleaner < ActiveSupport::BacktraceCleaner
     APP_DIRS_PATTERN = /^\/?(app|config|lib|test|\(\w*\))/
+    ABOSOLUTE_DIR_PATTERN = /^\/.*/
     RENDER_TEMPLATE_PATTERN = /:in `.*_\w+_{2,3}\d+_\d+'/
     EMPTY_STRING = ""
     SLASH = "/"
@@ -9,11 +10,19 @@ module RailyzerLogger
 
     def initialize
       super
-      @root = "#{Rails.root}/" # use `parent` because app may be broke into gems?
+      @root = ENV['RAILYZER_LOGGER_ROOT'] ? ENV['RAILYZER_LOGGER_ROOT'].dup : "#{Rails.root}/"
+      if @root[-1] != SLASH
+        @root << SLASH
+      end
       add_filter { |line| line.sub(@root, EMPTY_STRING) }
       add_filter { |line| line.sub(RENDER_TEMPLATE_PATTERN, EMPTY_STRING) }
       add_filter { |line| line.sub(DOT_SLASH, SLASH) } # for tests
       # add_silencer { |line| !APP_DIRS_PATTERN.match?(line) }
+
+      # If a line begins with "/", it is not filterd by @root and is not in root directory.
+      # So, we need to silence it. It looks stupid, but we have to do this because
+      # ActiveSupport::BacktraceCleaner apply filters first and then silencers.
+      add_silencer { |line| ABOSOLUTE_DIR_PATTERN.match?(line) }
     end
   end
 
