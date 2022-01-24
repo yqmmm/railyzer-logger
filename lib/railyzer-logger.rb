@@ -1,3 +1,5 @@
+require 'json'
+
 module RailyzerLogger
   # Modified from Rails:BacktraceCleaner
   class BackTraceCleaner < ActiveSupport::BacktraceCleaner
@@ -93,7 +95,7 @@ module RailyzerLogger
       SqlSource.register_sql "\#" + 
                             if event.payload[:cached] then "(cached)" else "" end + 
                             "#{cleaned_trace}"
-      SqlSource.register_sql event.payload[:sql]
+      SqlSource.register_sql event.payload[:sql] + " || " + JSON.dump(event.payload[:type_casted_binds])
     end
   end
 
