@@ -88,23 +88,33 @@ module RailyzerLogger
 
   ActiveSupport::Notifications.subscribe "sql.active_record" do |*args|
     event = ActiveSupport::Notifications::Event.new *args
+    payload = event.payload
 
-    cleaned_trace = cleaner.clean(caller).join(", ")
+    cleaned_trace = cleaner.clean(caller)
 
-    unless event.payload[:cached] or event.payload[:name] == 'SCHEMA'
-      SqlSource.register_sql "\#" + 
-                            if event.payload[:cached] then "(cached)" else "" end + 
-                            "#{cleaned_trace}"
-      SqlSource.register_sql event.payload[:sql] + " || " + JSON.dump(event.payload[:type_casted_binds])
+    unless payload[:cached] or payload[:name] == 'SCHEMA' or payload[:name] == 'RAILYZER'
+      sql = payload[:sql]
+      binds = payload[:binds]
+      if payload[:sql].include? 'SELECT'
+        result = event.payload[:connection].exec_query(sql, name="RAILYZER", binds=binds)
+      end
+
+      output = {
+        stack_trace: cleaned_trace,
+        sql: sql,
+        binds: event.payload[:type_casted_binds],
+        result: result,
+      }
+      SqlSource.register_sql output.to_json
     end
   end
 
   # There is also a `start_processing.action_controller` event which is fired when an action
   # begins to be handled
-  ActiveSupport::Notifications.subscribe "process_action.action_controller" do |*args|
-    event = ActiveSupport::Notifications::Event.new *args
-
-    SqlSource.finish_api event
-  end
+  # ActiveSupport::Notifications.subscribe "process_action.action_controller" do |*args|
+  #   event = ActiveSupport::Notifications::Event.new *args
+  #
+  #   SqlSource.finish_api event
+  # end
 end
 
